@@ -14,7 +14,7 @@ if [ $# == '0' ]; then
 fi
 
 RUN=exp_gtrans/$1.sh
-$RUN iwslt17 $2 $3 $4 $5 $6 $7
-#$RUN nc2016 $2 $3 $4 $5 $6 $7
-#$RUN europarl7 $2 $3 $4 $5 $6 $7
+bash $RUN iwslt17 $2 $3 $4 $5 $6 $7
+#bash $RUN nc2016 $2 $3 $4 $5 $6 $7
+#bash $RUN europarl7 $2 $3 $4 $5 $6 $7
 
