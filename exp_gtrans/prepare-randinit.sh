@@ -7,6 +7,8 @@
 # Usage:
 # e.g.
 # bash prepare-randinit.sh iwslt17 exp_test
+# Vu Hoang: add params: --mode-segment tf_idf and --tf-idf-score 0.2
+
 
 data=$1
 exp_path=$2
@@ -26,14 +28,15 @@ echo `date`, Prepraring data...
 # tokenize and sub-word
 bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
 
+echo `date`, Builder data...
 # data builder
 if [ $input == "doc" ]; then
-  python -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000
+  python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment tf_idf --tf-idf-score 0.2
 elif [ $input == "sent" ]; then
-  python -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+  python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
 fi
 
 # Preprocess/binarize the data
-python -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
+python3 -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
        --trainpref $seg_path/train --validpref $seg_path/valid --testpref $seg_path/test --destdir $bin_path \
        --joined-dictionary --workers 8

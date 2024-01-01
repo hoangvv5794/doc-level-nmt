@@ -97,12 +97,12 @@ TRAIN=$tmp/train.$lang.tc
 cat $tmp/train.$src.tc > $TRAIN
 cat $tmp/train.$tgt.tc >> $TRAIN
 
-python $BPEROOT/learn_bpe.py -s $BPE_TOKENS < $TRAIN > $BPE_CODE
+python3 $BPEROOT/learn_bpe.py -s $BPE_TOKENS < $TRAIN > $BPE_CODE
 
 for L in $src $tgt; do
     for F in train.$L valid.$L test.$L; do
         echo "apply_bpe.py to ${F}..."
-        python $BPEROOT/apply_bpe.py -c $BPE_CODE < $tmp/$F.tc > $tmp/$F.tc.bpe
+        python3 $BPEROOT/apply_bpe.py -c $BPE_CODE < $tmp/$F.tc > $tmp/$F.tc.bpe
     done
 done
 

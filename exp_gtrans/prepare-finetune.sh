@@ -7,6 +7,8 @@
 # Usage:
 # e.g.
 # bash prepare-finetune.sh iwslt17 exp_test
+# Vu Hoang: add params: --mode-segment tf_idf and --tf-idf-score 0.2
+
 
 data=$1
 exp_path=$2
@@ -29,15 +31,15 @@ echo `date`, Prepraring data...
 bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
 
 # data builder
-python -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path_sent/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
-python -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path_doc/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000
+python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path_sent/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path_doc/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment tf_idf --tf-idf-score 0.2
 
 # Preprocess/binarize the data
-python -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
+python3 -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
        --trainpref $seg_path_sent/train --validpref $seg_path_sent/valid --testpref $seg_path_sent/test --destdir $bin_path_sent \
        --joined-dictionary --workers 8
 
 dict_path=$bin_path_sent/dict.$slang.txt
-python -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
+python3 -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \
        --trainpref $seg_path_doc/train --validpref $seg_path_doc/valid --testpref $seg_path_doc/test --destdir $bin_path_doc \
        --srcdict $dict_path --tgtdict $dict_path --workers 8

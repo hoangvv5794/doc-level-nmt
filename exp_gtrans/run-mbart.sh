@@ -34,7 +34,7 @@ mbart_model=mbart.cc25/model.pt
 
 if [ $mode == "train" ]; then
   echo `date`, Training model...
-  python train.py $bin_path --save-dir $cp_path --tensorboard-logdir $cp_path --seed 222 --fp16 --num-workers 4 \
+  python3 train.py $bin_path --save-dir $cp_path --tensorboard-logdir $cp_path --seed 222 --fp16 --num-workers 4 \
          --task translation_doc --arch mbart_large --source-lang $slang --target-lang $tlang --langs $mbart_langs \
          --doc-mode partial --encoder-normalize-before --decoder-normalize-before --layernorm-embedding \
          --optimizer adam --adam-eps 1e-06 --adam-betas '(0.9, 0.98)' \
@@ -47,7 +47,7 @@ if [ $mode == "train" ]; then
 elif [ $mode == "test" ]; then
   mkdir -p $res_path
   echo `date`, Testing model on test dataset...
-  python -m fairseq_cli.generate $bin_path --path $cp_path/checkpoint_best.pt \
+  python3 -m fairseq_cli.generate $bin_path --path $cp_path/checkpoint_best.pt \
          --gen-subset test --batch-size 32 --beam 5 --max-len-a 1.2 --max-len-b 10 \
          --task translation_doc --source-lang $slang --target-lang $tlang \
          --doc-mode partial --tokenizer moses --bpe 'sentencepiece' --sentencepiece-vocab $mbart_bpe --sacrebleu \

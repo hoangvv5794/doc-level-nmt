@@ -35,7 +35,7 @@ doc_langs=$slang,$tlang
 if [ $mode == "train" ]; then
   echo `date`, Training sentence-level model...
   doc_langs=$slang,$tlang
-  python train.py $bin_path_sent --save-dir $cp_path_sent --tensorboard-logdir $cp_path_sent --seed 444 --fp16 --num-workers 4 \
+  python3 train.py $bin_path_sent --save-dir $cp_path_sent --tensorboard-logdir $cp_path_sent --seed 444 --fp16 --num-workers 4 \
          --task translation_doc --source-lang $slang --target-lang $tlang --langs $doc_langs \
          --arch gtransformer_base --doc-mode full --share-all-embeddings \
          --optimizer adam --adam-betas "(0.9, 0.98)" --lr 5e-4 --lr-scheduler inverse_sqrt --warmup-updates 4000 \
@@ -47,7 +47,7 @@ if [ $mode == "train" ]; then
   sent_model=$cp_path_sent/checkpoint_best.pt
   echo Load sentence model from $sent_model
   echo `date`, Training model...
-  python train.py $bin_path_doc --save-dir $cp_path_doc --tensorboard-logdir $cp_path_doc --seed 444 --num-workers 4 \
+  python3 train.py $bin_path_doc --save-dir $cp_path_doc --tensorboard-logdir $cp_path_doc --seed 444 --num-workers 4 \
          --task translation_doc --source-lang $slang --target-lang $tlang --langs $doc_langs \
          --arch gtransformer_base --doc-mode partial --share-all-embeddings \
          --optimizer adam --adam-betas "(0.9, 0.98)" \
@@ -61,7 +61,7 @@ if [ $mode == "train" ]; then
 elif [ $mode == "test" ]; then
   mkdir -p $res_path
   echo `date`, Testing model on test dataset...
-  python -m fairseq_cli.generate $bin_path_doc --path $cp_path_doc/checkpoint_best.pt \
+  python3 -m fairseq_cli.generate $bin_path_doc --path $cp_path_doc/checkpoint_best.pt \
          --gen-subset test --batch-size 16 --beam 5 --max-len-a 1.2 --max-len-b 10 \
          --task translation_doc --source-lang $slang --target-lang $tlang --langs $doc_langs \
          --doc-mode partial --tokenizer moses --remove-bpe --sacrebleu \
