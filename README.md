@@ -16,6 +16,15 @@ Before running the scripts, please install fairseq dependencies by:
 Please also follow the readmes under folder raw_data and mbart.cc25 to download raw data and pretrained model.
 (Notes: Our models were trained on 4 GPUs. If you trained them on 2 GPUs, in theory you could double the number for argument --update-freq. However, we haven't tested such settings.)
 
+## Vu Hoang Upgrade:
+
+### Segment mode 
+* Normal: each sentence by author
+* Grouping number sentences: 3-5-7 sentences per group
+* TF-IDF: grouping sentences > 0.2 similarity score
+* Edit in file: exp_gtrans/prepare-*.sh (add params mode-segment)
+
+
 ## Non-pretraining Settings
 
 ### G-Transformer random initialized

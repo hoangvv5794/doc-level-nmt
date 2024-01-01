@@ -7,6 +7,7 @@
 # Usage:
 # e.g.
 # bash prepare-randinit.sh iwslt17 exp_test
+# Vu Hoang edit: add params --mode-segment tf_idf --tf-idf-score 0.2
 
 data=$1
 exp_path=$2
