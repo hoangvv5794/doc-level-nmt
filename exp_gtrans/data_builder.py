@@ -54,12 +54,36 @@ def convert_to_segment(args):
         cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
         src_data_final = []
         tgt_data_final = []
-        for idx, vector in enumerate(cosine_sim):
-            matrix_check = vector > args.tf_idf_score
-            input_text_src = np.array(src)[np.where(matrix_check)]
-            input_text_tgt = np.array(tgt)[np.where(matrix_check)]
-            src_data_final.append(' '.join(input_text_src))
-            tgt_data_final.append(' '.join(input_text_tgt))
+        matrix_ones = np.tri(len(src), k=0, dtype=np.int32).transpose()
+        cosine_sim = cosine_sim * matrix_ones
+        cosine_sim = cosine_sim > args.tf_idf_score
+        # find longest sentences has similarity score > 0.2
+        round_skip = 0
+        queue_skip_round = []
+        index = 0
+        for vector in cosine_sim:
+            if len(queue_skip_round) > 0:
+                round_skip = queue_skip_round.pop(0)
+                if round_skip > 0:
+                    queue_skip_round.append(round_skip - 1)
+                    continue
+            input_text_src = []
+            input_text_tgt = []
+            for ind, value in enumerate(vector):
+                if ind >= index:
+                    if value:
+                        input_text_src.append(src[ind])
+                        input_text_tgt.append(tgt[ind])
+                        round_skip = round_skip + 1
+                    else:
+                        if len(input_text_tgt) > 0:
+                            src_data_final.append('<s> %s </s>' % ' '.join(input_text_src))
+                            tgt_data_final.append('<s> %s </s>' % ' '.join(input_text_tgt))
+                        if round_skip > 1:
+                            queue_skip_round.append(round_skip - 1)
+                        index = index + round_skip
+                        round_skip = 0
+                        break
         segs = []  # [max_tokens, max_segs, src, tgt]
         for idx, (s, t) in enumerate(zip(src_data_final, tgt_data_final)):
             if len(s) == 0 and len(t) == 0:
@@ -73,10 +97,10 @@ def convert_to_segment(args):
                     and (num is None or segs[-1][1] < num):
                 segs[-1][0] += max_toks
                 segs[-1][1] += 1
-                segs[-1][2] += ['<s> %s </s>' % s]
-                segs[-1][3] += ['<s> %s </s>' % t]
+                segs[-1][2] += [s]
+                segs[-1][3] += [t]
             else:
-                segs.append([max_toks, 1, ['<s> %s </s>' % s], ['<s> %s </s>' % t]])
+                segs.append([max_toks, 1, [s], [t]])
         # output
         srcs = [' '.join(s) for _, _, s, _ in segs]
         tgts = [' '.join(t) for _, _, _, t in segs]
