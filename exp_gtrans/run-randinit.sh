@@ -40,7 +40,6 @@ if [ $mode == "train" ]; then
          --criterion label_smoothed_cross_entropy --label-smoothing 0.1 --no-epoch-checkpoints \
          --max-tokens 4096 --update-freq 1 --validate-interval 1 --patience 10 \
          --encoder-ctxlayers 2 --decoder-ctxlayers 2 --cross-ctxlayers 2 \
-         --tf_idf_mode enable --tf_idf_score 0.8 \
          --doc-noise-mask 0.3 --doc-noise-epochs 30 > $run_path/train.$data.$slang-$tlang.log 2>&1
 elif [ $mode == "test" ]; then
   mkdir -p $res_path
@@ -50,7 +49,6 @@ elif [ $mode == "test" ]; then
          --gen-subset test --batch-size 16 --beam 5 --max-len-a 1.2 --max-len-b 10 \
          --task translation_doc --source-lang $slang --target-lang $tlang --langs $doc_langs \
          --doc-mode partial --tokenizer moses --remove-bpe --sacrebleu \
-         --tf_idf_mode enable --tf_idf_score 0.8 \
          --gen-output $res_path/test > $run_path/test.$data.$slang-$tlang.log 2>&1
 else
   echo Unknown mode ${mode}.

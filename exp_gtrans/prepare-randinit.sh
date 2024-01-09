@@ -7,8 +7,7 @@
 # Usage:
 # e.g.
 # bash prepare-randinit.sh iwslt17 exp_test
-# Vu Hoang: add params: --mode-segment tf_idf and --tf-idf-score 0.2
-
+# Vu Hoang edit: add params --mode-segment tf_idf --tf-idf-score 0.2
 
 data=$1
 exp_path=$2
@@ -28,7 +27,6 @@ echo `date`, Prepraring data...
 # tokenize and sub-word
 bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
 
-echo `date`, Builder data...
 # data builder
 if [ $input == "doc" ]; then
   python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment tf_idf --tf-idf-score 0.2
