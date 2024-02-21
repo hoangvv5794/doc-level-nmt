@@ -4,11 +4,15 @@ import os
 import os.path as path
 import codecs
 from utils import load_lines_special, save_lines, read_file
+from sentence_transformers import SentenceTransformer
 
+model = SentenceTransformer("all-MiniLM-L6-v2")
 logger = logging.getLogger()
 
 
 def convert_to_segment(args):
+    min_size_chunk = args.lower_size_chunk
+    max_size_chunk = args.upper_size_chunk
     logger.info('Building segmented data: %s' % args)
     # train, valid, test
     dataset = args.dataset
@@ -29,13 +33,32 @@ def convert_to_segment(args):
             src_lines_split = src_doc.split('\r\n')
             tgt_lines_split = tgt_doc.split('\r\n')
             # push each sentence to BERT Model and vectorize each sentence
-
-            # compare and merge sentence to groups
-
-            # split each group with delimiter <s>
+            embeddings = model.encode(src_lines_split, convert_to_tensor=True)
+            # Print the embeddings
+            src_data_out = []
+            tgt_data_out = []
+            src_current_chunk = []
+            tgt_current_chunk = []
+            for idx, (src_sentence, tgt_sentence) in enumerate(
+                    zip(src_lines_split, tgt_lines_split)):
+                # compare and merge sentence to groups
+                # split each group with delimiter <s>
+                current_size = len(src_current_chunk)
+                if current_size < min_size_chunk:
+                    src_current_chunk.append(src_sentence)
+                    tgt_current_chunk.append(tgt_sentence)
+                elif current_size >= max_size_chunk:
+                    src_data_out.append(src_current_chunk)
+                    tgt_data_out.append(tgt_current_chunk)
+                    src_current_chunk = []
+                    tgt_current_chunk = []
+                else:
+                    # define current_sentence belong current_chunk or next_chunk
+                    # embedding of current_chunk
+                    current_chunk_embed = embeddings[idx - current_size:idx - 1]
+                    next_chunk_embed = embeddings[idx + 1:idx + 2]
 
             # write out to file
-
 
     # split by document
 
@@ -91,6 +114,10 @@ if __name__ == '__main__':
     parser.add_argument("--max-sents", default=1000, type=int)
     parser.add_argument("--max-tokens", default=512, type=int)
     parser.add_argument("--min-train-doclen", default=-1, type=int)
+    # max and min size chunk
+    parser.add_argument("--lower-size-chunk", default=384, type=int)
+    parser.add_argument("--upper-size-chunk", default=1920, type=int)
+
     # normal / number / tf_idf
     parser.add_argument("--mode-segment", default='normal')
     parser.add_argument("--tf-idf-score", default=0.2, type=float)
