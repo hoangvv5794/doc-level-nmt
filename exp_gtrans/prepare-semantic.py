@@ -2,10 +2,13 @@ import argparse
 import logging
 import os
 import os.path as path
-import codecs
-from utils import load_lines_special, save_lines, read_file
+
+from sentence_transformers import SentenceTransformer
+
+from utils import read_file
 
 logger = logging.getLogger()
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 def convert_to_segment(args):
@@ -26,10 +29,16 @@ def convert_to_segment(args):
         for idx, (src_doc, tgt_doc) in enumerate(zip(src_doc_split, tgt_doc_split)):
             # process for each source_doc and target_doc
             # split document to each sentence
-            src_lines_split = src_doc.split('\r\n')
-            tgt_lines_split = tgt_doc.split('\r\n')
+            src_lines_split = list(filter(None, src_doc.split('\r\n')))
+            tgt_lines_split = list(filter(None, tgt_doc.split('\r\n')))
             # push each sentence to BERT Model and vectorize each sentence
-
+            embeddings = model.encode(src_lines_split)
+            # Print the embeddings
+            for sentence, embedding in zip(src_lines_split, embeddings):
+                print("Sentence:", sentence)
+                print("Embedding:", embedding)
+                print("")
+            print("Done")
             # compare and merge sentence to groups
 
             # split each group with delimiter <s>
