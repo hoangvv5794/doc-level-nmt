@@ -2,9 +2,10 @@ import argparse
 import logging
 import os
 import os.path as path
-import codecs
-from utils import load_lines_special, save_lines, read_file
-from sentence_transformers import SentenceTransformer
+
+from sentence_transformers import SentenceTransformer, util
+
+from utils import read_file
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 logger = logging.getLogger()
@@ -56,8 +57,12 @@ def convert_to_segment(args):
                     # define current_sentence belong current_chunk or next_chunk
                     # embedding of current_chunk
                     current_chunk_embed = embeddings[idx - current_size:idx - 1]
-                    next_chunk_embed = embeddings[idx + 1:idx + 2]
-
+                    next_chunk_embed = embeddings[idx + 1]
+                    # find out current_embedding belong to current chunk or next chunk
+                    cosine_matrix_current_chunk = util.cos_sim(embeddings[idx], current_chunk_embed)
+                    cosine_matrix_next_chunk = util.cos_sim(embeddings[idx], next_chunk_embed)
+                    print(cosine_matrix_next_chunk)
+                    print(cosine_matrix_current_chunk)
             # write out to file
 
     # split by document
@@ -114,9 +119,9 @@ if __name__ == '__main__':
     parser.add_argument("--max-sents", default=1000, type=int)
     parser.add_argument("--max-tokens", default=512, type=int)
     parser.add_argument("--min-train-doclen", default=-1, type=int)
-    # max and min size chunk
-    parser.add_argument("--lower-size-chunk", default=384, type=int)
-    parser.add_argument("--upper-size-chunk", default=1920, type=int)
+    # max and min size chunk of sentence
+    parser.add_argument("--lower-size-chunk", default=1, type=int)
+    parser.add_argument("--upper-size-chunk", default=5, type=int)
 
     # normal / number / tf_idf
     parser.add_argument("--mode-segment", default='normal')
