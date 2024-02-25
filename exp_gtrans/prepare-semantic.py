@@ -28,19 +28,25 @@ def convert_to_segment(args):
 
         src_doc_split = src_raw.split('<d>')
         tgt_doc_split = tgt_raw.split('<d>')
+        src_doc_split = list(filter(None, src_doc_split))
+        tgt_doc_split = list(filter(None, tgt_doc_split))
         for idx, (src_doc, tgt_doc) in enumerate(zip(src_doc_split, tgt_doc_split)):
             # process for each source_doc and target_doc
             # split document to each sentence
             src_lines_split = src_doc.split('\r\n')
             tgt_lines_split = tgt_doc.split('\r\n')
+            src_lines_split = list(filter(None, src_lines_split))
+            tgt_lines_split = list(filter(None, tgt_lines_split))
             # push each sentence to BERT Model and vectorize each sentence
             embeddings = model.encode(src_lines_split, convert_to_tensor=True)
+            matrix_cosine_similarity = util.cos_sim(embeddings, embeddings)
+            # print(matrix_cosine_similarity)
             # Print the embeddings
             src_data_out = []
             tgt_data_out = []
             src_current_chunk = []
             tgt_current_chunk = []
-            for idx, (src_sentence, tgt_sentence) in enumerate(
+            for index, (src_sentence, tgt_sentence) in enumerate(
                     zip(src_lines_split, tgt_lines_split)):
                 # compare and merge sentence to groups
                 # split each group with delimiter <s>
@@ -53,16 +59,28 @@ def convert_to_segment(args):
                     tgt_data_out.append(tgt_current_chunk)
                     src_current_chunk = []
                     tgt_current_chunk = []
+                    src_current_chunk.append(src_sentence)
+                    tgt_current_chunk.append(tgt_sentence)
                 else:
                     # define current_sentence belong current_chunk or next_chunk
-                    # embedding of current_chunk
-                    current_chunk_embed = embeddings[idx - current_size:idx - 1]
-                    next_chunk_embed = embeddings[idx + 1]
-                    # find out current_embedding belong to current chunk or next chunk
-                    cosine_matrix_current_chunk = util.cos_sim(embeddings[idx], current_chunk_embed)
-                    cosine_matrix_next_chunk = util.cos_sim(embeddings[idx], next_chunk_embed)
-                    print(cosine_matrix_next_chunk)
-                    print(cosine_matrix_current_chunk)
+                    # compute current sentence with current_chunk
+                    average_similarity_current = 0
+                    for i in range(1, current_size + 1):
+                        average_similarity_current += matrix_cosine_similarity[index][index - i]
+                    average_similarity_current = average_similarity_current / current_size
+                    similarity_next = matrix_cosine_similarity[index][index + 1]
+                    if average_similarity_current > similarity_next:
+                        # current sentence belong current chunk => append to current chunk
+                        src_current_chunk.append(src_sentence)
+                        tgt_current_chunk.append(tgt_sentence)
+                    else:
+                        # current sentence belong next chunk => create new chunk
+                        src_data_out.append(src_current_chunk)
+                        tgt_data_out.append(tgt_current_chunk)
+                        src_current_chunk = []
+                        tgt_current_chunk = []
+                        src_current_chunk.append(src_sentence)
+                        tgt_current_chunk.append(tgt_sentence)
             # write out to file
 
     # split by document
