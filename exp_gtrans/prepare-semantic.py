@@ -2,13 +2,38 @@ import argparse
 import logging
 import os
 import os.path as path
-
 from sentence_transformers import SentenceTransformer, util
 
-from utils import read_file
+from utils import read_file, save_lines
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 logger = logging.getLogger()
+
+
+def _segment_seqtag_origin(src, tgt, num=None):
+    src = src.split('</s>')
+    tgt = tgt.split('</s>')
+    segs = []  # [max_tokens, max_segs, src, tgt]
+    for idx, (s, t) in enumerate(zip(src, tgt)):
+        if len(s) == 0 and len(t) == 0:
+            continue
+        assert len(s) > 0 and len(t) > 0
+        s_toks = s.split()
+        t_toks = t.split()
+        max_toks = max(len(s_toks), len(t_toks)) + 2
+        # count tokens
+        if len(segs) > 0 and segs[-1][0] + max_toks < args.max_tokens \
+                and (num is None or segs[-1][1] < num):
+            segs[-1][0] += max_toks
+            segs[-1][1] += 1
+            segs[-1][2] += ['<s> %s </s>' % ' '.join(s_toks)]
+            segs[-1][3] += ['<s> %s </s>' % ' '.join(t_toks)]
+        else:
+            segs.append([max_toks, 1, ['<s> %s </s>' % ' '.join(s_toks)], ['<s> %s </s>' % ' '.join(t_toks)]])
+    # output
+    srcs = [' '.join(s) for _, _, s, _ in segs]
+    tgts = [' '.join(t) for _, _, _, t in segs]
+    return srcs, tgts
 
 
 def convert_to_segment(args):
@@ -25,11 +50,12 @@ def convert_to_segment(args):
         target_lang_file = 'concatenated_en2de_%s_%s.txt' % (corpus, args.target_lang)
         src_raw = read_file(path.join(args.datadir, dataset, source_lang_file))
         tgt_raw = read_file(path.join(args.datadir, dataset, target_lang_file))
-
         src_doc_split = src_raw.split('<d>')
         tgt_doc_split = tgt_raw.split('<d>')
         src_doc_split = list(filter(None, src_doc_split))
         tgt_doc_split = list(filter(None, tgt_doc_split))
+        src_data = []
+        tgt_data = []
         for idx, (src_doc, tgt_doc) in enumerate(zip(src_doc_split, tgt_doc_split)):
             # process for each source_doc and target_doc
             # split document to each sentence
@@ -46,12 +72,13 @@ def convert_to_segment(args):
             tgt_data_out = []
             src_current_chunk = []
             tgt_current_chunk = []
+            size_of_doc = len(src_lines_split)
             for index, (src_sentence, tgt_sentence) in enumerate(
                     zip(src_lines_split, tgt_lines_split)):
                 # compare and merge sentence to groups
                 # split each group with delimiter <s>
                 current_size = len(src_current_chunk)
-                if current_size < min_size_chunk:
+                if (current_size < min_size_chunk):
                     src_current_chunk.append(src_sentence)
                     tgt_current_chunk.append(tgt_sentence)
                 elif current_size >= max_size_chunk:
@@ -68,8 +95,11 @@ def convert_to_segment(args):
                     for i in range(1, current_size + 1):
                         average_similarity_current += matrix_cosine_similarity[index][index - i]
                     average_similarity_current = average_similarity_current / current_size
-                    similarity_next = matrix_cosine_similarity[index][index + 1]
-                    if average_similarity_current > similarity_next:
+                    if index >= size_of_doc - 1:
+                        similarity_next = 0.6
+                    else:
+                        similarity_next = matrix_cosine_similarity[index][index + 1]
+                    if (average_similarity_current > similarity_next) or average_similarity_current > 0.6:
                         # current sentence belong current chunk => append to current chunk
                         src_current_chunk.append(src_sentence)
                         tgt_current_chunk.append(tgt_sentence)
@@ -81,49 +111,31 @@ def convert_to_segment(args):
                         tgt_current_chunk = []
                         src_current_chunk.append(src_sentence)
                         tgt_current_chunk.append(tgt_sentence)
+            if len(src_current_chunk) > 0:
+                src_data_out.append(src_current_chunk)
+                tgt_data_out.append(tgt_current_chunk)
             # write out to file
-
-    # split by document
-
-    # convert
-    # processed = []
-    # src_data = []
-    # tgt_data = []
-    # for idx, (src, tgt) in enumerate(zip(src_lines, tgt_lines)):
-    #     # check min doc length for training
-    #     if corpus == 'train' and len(src.split()) < args.min_train_doclen:
-    #         logger.warning('Skip too short document: corpus=train, doc=%s, sents=%s, tokens=%s'
-    #                        % (idx, len(src.split('</s>')), len(src.split())))
-    #         continue
-    #     # segment the doc
-    #     srcs, tgts = seg_func(src, tgt, args.max_sents)
-    #     # verify doc length
-    #     srcs_len = [len(line.split()) for line in srcs]
-    #     if any(l > args.max_tokens for l in srcs_len):
-    #         logger.warning('Source doc has too long segment: corpus=%s, doc=%s, sents=%s, seg_len=%s, max_len=%s.'
-    #                        % (corpus, idx, len(src.split('</s>')), max(srcs_len), args.max_tokens))
-    #     tgts_len = [len(line.split()) for line in tgts]
-    #     if any(l > args.max_tokens for l in tgts_len):
-    #         logger.warning('Target doc has too long segment: corpus=%s, doc=%s, sents=%s, seg_len=%s, max_len=%s.'
-    #                        % (corpus, idx, len(tgt.split('</s>')), max(tgts_len), args.max_tokens))
-    #     # persist
-    #     src_data.extend(srcs)
-    #     tgt_data.extend(tgts)
-    #     processed.append(idx)
-    # # remove special token
-    # if args.no_special_tok:
-    #     src_data = [line.replace('<s> ', '').replace(' </s>', '') for line in src_data]
-    #     tgt_data = [line.replace('<s> ', '').replace(' </s>', '') for line in tgt_data]
-    # # save segmented language files
-    # logger.info('Processed %s documents of %s with a max_len of %s.' % (len(processed), corpus, args.max_tokens))
-    # source_lang_file = '%s.%s' % (corpus, args.source_lang)
-    # target_lang_file = '%s.%s' % (corpus, args.target_lang)
-    # source_lang_file = path.join(args.destdir, source_lang_file)
-    # save_lines(source_lang_file, src_data)
-    # logger.info('Saved %s lines into %s' % (len(src_data), source_lang_file))
-    # target_lang_file = path.join(args.destdir, target_lang_file)
-    # save_lines(target_lang_file, tgt_data)
-    # logger.info('Saved %s lines into %s' % (len(tgt_data), target_lang_file))
+            src_data_final = []
+            tgt_data_final = []
+            for src_data_out_sentence in src_data_out:
+                src_data_final.append(' %s </s>' % ' '.join(src_data_out_sentence))
+            for tgt_data_out_sentence in tgt_data_out:
+                tgt_data_final.append(' %s </s>' % ' '.join(tgt_data_out_sentence))
+            # cut into lines max tokens
+            num = args.max_sents
+            srcs, tgts = _segment_seqtag_origin(' '.join(src_data_final), ' '.join(tgt_data_final), num)
+            src_data.extend(srcs)
+            tgt_data.extend(tgts)
+        if corpus == 'dev':
+            corpus = 'valid'
+        source_lang_file = '%s.%s' % (corpus, args.source_lang)
+        target_lang_file = '%s.%s' % (corpus, args.target_lang)
+        source_lang_file = path.join(args.destdir, source_lang_file)
+        save_lines(source_lang_file, src_data)
+        logger.info('Saved %s lines into %s' % (len(src_data), source_lang_file))
+        target_lang_file = path.join(args.destdir, target_lang_file)
+        save_lines(target_lang_file, tgt_data)
+        logger.info('Saved %s lines into %s' % (len(tgt_data), target_lang_file))
 
 
 if __name__ == '__main__':
