@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import os.path as path
+
 from sentence_transformers import SentenceTransformer, util
 
 from utils import read_file, save_lines
@@ -39,6 +40,7 @@ def _segment_seqtag_origin(src, tgt, num=None):
 def convert_to_segment(args):
     min_size_chunk = args.lower_size_chunk
     max_size_chunk = args.upper_size_chunk
+    threshold_similarity = args.threshold_similarity
     logger.info('Building segmented data: %s' % args)
     # train, valid, test
     dataset = args.dataset
@@ -66,8 +68,6 @@ def convert_to_segment(args):
             # push each sentence to BERT Model and vectorize each sentence
             embeddings = model.encode(src_lines_split, convert_to_tensor=True)
             matrix_cosine_similarity = util.cos_sim(embeddings, embeddings)
-            # print(matrix_cosine_similarity)
-            # Print the embeddings
             src_data_out = []
             tgt_data_out = []
             src_current_chunk = []
@@ -75,10 +75,11 @@ def convert_to_segment(args):
             size_of_doc = len(src_lines_split)
             for index, (src_sentence, tgt_sentence) in enumerate(
                     zip(src_lines_split, tgt_lines_split)):
-                # compare and merge sentence to groups
-                # split each group with delimiter <s>
+                # process with each sentence from source and target
                 current_size = len(src_current_chunk)
-                if (current_size < min_size_chunk):
+                # size of current chunk smaller than min_size => append sentence to current chunk
+                # size of current chunk larger than max_size => create new chunk with sentence + append chunk to result
+                if current_size < min_size_chunk:
                     src_current_chunk.append(src_sentence)
                     tgt_current_chunk.append(tgt_sentence)
                 elif current_size >= max_size_chunk:
@@ -89,17 +90,17 @@ def convert_to_segment(args):
                     src_current_chunk.append(src_sentence)
                     tgt_current_chunk.append(tgt_sentence)
                 else:
-                    # define current_sentence belong current_chunk or next_chunk
-                    # compute current sentence with current_chunk
+                    # define sentence belong current_chunk or next_chunk
+                    # if similarity of current > threshold (0.6) => append sentence to current chunk
                     average_similarity_current = 0
                     for i in range(1, current_size + 1):
                         average_similarity_current += matrix_cosine_similarity[index][index - i]
                     average_similarity_current = average_similarity_current / current_size
                     if index >= size_of_doc - 1:
-                        similarity_next = 0.6
+                        similarity_next = threshold_similarity
                     else:
                         similarity_next = matrix_cosine_similarity[index][index + 1]
-                    if (average_similarity_current > similarity_next) or average_similarity_current > 0.6:
+                    if (average_similarity_current > similarity_next) or average_similarity_current > threshold_similarity:
                         # current sentence belong current chunk => append to current chunk
                         src_current_chunk.append(src_sentence)
                         tgt_current_chunk.append(tgt_sentence)
@@ -114,18 +115,17 @@ def convert_to_segment(args):
             if len(src_current_chunk) > 0:
                 src_data_out.append(src_current_chunk)
                 tgt_data_out.append(tgt_current_chunk)
-            # write out to file
             src_data_final = []
             tgt_data_final = []
             for src_data_out_sentence in src_data_out:
                 src_data_final.append(' %s </s>' % ' '.join(src_data_out_sentence))
             for tgt_data_out_sentence in tgt_data_out:
                 tgt_data_final.append(' %s </s>' % ' '.join(tgt_data_out_sentence))
-            # cut into lines max tokens
             num = args.max_sents
             srcs, tgts = _segment_seqtag_origin(' '.join(src_data_final), ' '.join(tgt_data_final), num)
             src_data.extend(srcs)
             tgt_data.extend(tgts)
+        # write out to file
         if corpus == 'dev':
             corpus = 'valid'
         source_lang_file = '%s.%s' % (corpus, args.source_lang)
@@ -136,7 +136,6 @@ def convert_to_segment(args):
         target_lang_file = path.join(args.destdir, target_lang_file)
         save_lines(target_lang_file, tgt_data)
         logger.info('Saved %s lines into %s' % (len(tgt_data), target_lang_file))
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -152,8 +151,8 @@ if __name__ == '__main__':
     # max and min size chunk of sentence
     parser.add_argument("--lower-size-chunk", default=1, type=int)
     parser.add_argument("--upper-size-chunk", default=5, type=int)
+    parser.add_argument("--threshold-similarity", default=0.6, type=float)
 
-    # normal / number / tf_idf
     parser.add_argument("--mode-segment", default='normal')
     parser.add_argument("--tf-idf-score", default=0.2, type=float)
     parser.add_argument("--divided-group-sentences", default=3, type=int)
