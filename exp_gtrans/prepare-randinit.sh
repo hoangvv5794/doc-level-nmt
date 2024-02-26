@@ -6,33 +6,78 @@
 #
 # Usage:
 # e.g.
-# bash prepare-randinit.sh iwslt17 exp_test
-# Vu Hoang edit: add params --mode-segment tf_idf --tf-idf-score 0.2
+# Vu Hoang edit: bash prepare-randinit.sh iwslt17 exp_test semantic
 
 data=$1
 exp_path=$2
+mode_segment=$3
 input=doc
 code=bpe
 
 slang=en
 tlang=de
 
-echo `date`, exp_path: $exp_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang
-tok_path=$exp_path/$data.tokenized.$slang-$tlang
-seg_path=$exp_path/$data.segmented.$slang-$tlang
-bin_path=$exp_path/$data.binarized.$slang-$tlang
+# segment mode: semantic/normal/number/tf-idf
+if [ $mode_segment == "semantic" ]; then
 
-echo `date`, Prepraring data...
+  if [ $input == "doc" ]; then
+    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000
+  elif [ $input == "sent" ]; then
+    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+  fi
+elif [ $mode_segment == "normal" ]; then
+  echo `date`, exp_path: $exp_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang
+  tok_path=$exp_path/$data.tokenized.$slang-$tlang
+  seg_path=$exp_path/$data.segmented.$slang-$tlang
+  bin_path=$exp_path/$data.binarized.$slang-$tlang
 
-# tokenize and sub-word
-bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
+  echo `date`, Prepraring data...
 
-# data builder
-if [ $input == "doc" ]; then
-  python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment tf_idf --tf-idf-score 0.2
-elif [ $input == "sent" ]; then
-  python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+  # tokenize and sub-word
+  bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
+
+  # data builder
+  if [ $input == "doc" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000
+  elif [ $input == "sent" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+  fi
+elif [ $mode_segment == "tf_idf" ]; then
+  echo `date`, exp_path: $exp_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang
+  tok_path=$exp_path/$data.tokenized.$slang-$tlang
+  seg_path=$exp_path/$data.segmented.$slang-$tlang
+  bin_path=$exp_path/$data.binarized.$slang-$tlang
+
+  echo `date`, Prepraring data...
+
+  # tokenize and sub-word
+  bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
+
+  # data builder
+  if [ $input == "doc" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment $mode_segment ----tf-idf-score 0.2
+  elif [ $input == "sent" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+  fi
+elif [ $mode_segment == "number" ]; then
+  echo `date`, exp_path: $exp_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang
+  tok_path=$exp_path/$data.tokenized.$slang-$tlang
+  seg_path=$exp_path/$data.segmented.$slang-$tlang
+  bin_path=$exp_path/$data.binarized.$slang-$tlang
+
+  echo `date`, Prepraring data...
+
+  # tokenize and sub-word
+  bash exp_gtrans/prepare-bpe.sh raw_data/$data $tok_path
+
+  # data builder
+  if [ $input == "doc" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --divided-group-sentences 3
+  elif [ $input == "sent" ]; then
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1 --divided-group-sentences 3
+  fi
 fi
+
 
 # Preprocess/binarize the data
 python3 -m fairseq_cli.preprocess --task translation_doc --source-lang $slang --target-lang $tlang \

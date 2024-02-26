@@ -23,6 +23,7 @@ Please also follow the readmes under folder raw_data and mbart.cc25 to download 
 * Grouping number sentences: 3-5-7 sentences per group
 * TF-IDF: grouping sentences > 0.2 similarity score
 * Edit in file: exp_gtrans/prepare-*.sh (add params mode-segment)
+* Semantic: grouping sentences into chunks, sentence belong to current chunk or next chunk by compute similarity
 
 
 ## Non-pretraining Settings
@@ -30,8 +31,10 @@ Please also follow the readmes under folder raw_data and mbart.cc25 to download 
 ### G-Transformer random initialized
 * Prepare data: 
 ```
+    mode_segment: normal/number/semantic/tf-idf
     mkdir exp_randinit
-    bash exp_gtrans/run-all.sh prepare-randinit exp_randinit
+    bash exp_gtrans/run-all.sh prepare-randinit exp_randinit $mode_segment
+    
 ```
 
 * Train model:
