@@ -40,7 +40,6 @@ def _segment_seqtag_origin(src, tgt, num=None):
 def convert_to_segment(args):
     min_size_chunk = args.lower_size_chunk
     max_size_chunk = args.upper_size_chunk
-    threshold_similarity = 0.5
     logger.info('Building segmented data: %s' % args)
     # train, valid, test
     dataset = args.dataset
@@ -73,15 +72,20 @@ def convert_to_segment(args):
             src_current_chunk = []
             tgt_current_chunk = []
             size_of_doc = len(src_lines_split)
-            for index, (src_sentence, tgt_sentence) in enumerate(
-                    zip(src_lines_split, tgt_lines_split)):
+            temp = 0
+            for index in range(size_of_doc - min_size_chunk):
                 # process with each sentence from source and target
+                if index != temp:
+                    continue
                 current_size = len(src_current_chunk)
+                src_sentence = src_lines_split[index]
+                tgt_sentence = tgt_lines_split[index]
                 # size of current chunk smaller than min_size => append sentence to current chunk
                 # size of current chunk larger than max_size => create new chunk with sentence + append chunk to result
                 if current_size < min_size_chunk:
                     src_current_chunk.append(src_sentence)
                     tgt_current_chunk.append(tgt_sentence)
+                    temp += 1
                 elif current_size >= max_size_chunk:
                     src_data_out.append(src_current_chunk)
                     tgt_data_out.append(tgt_current_chunk)
@@ -89,29 +93,37 @@ def convert_to_segment(args):
                     tgt_current_chunk = []
                     src_current_chunk.append(src_sentence)
                     tgt_current_chunk.append(tgt_sentence)
+                    temp += 1
                 else:
                     # define sentence belong current_chunk or next_chunk
                     # if similarity of current > threshold (0.6) => append sentence to current chunk
                     average_similarity_current = 0
+                    average_similarity_next = 0
                     for i in range(1, current_size + 1):
                         average_similarity_current += matrix_cosine_similarity[index][index - i]
                     average_similarity_current = average_similarity_current / current_size
-                    if index >= size_of_doc - 1:
-                        similarity_next = threshold_similarity
-                    else:
-                        similarity_next = matrix_cosine_similarity[index][index + 1]
-                    if average_similarity_current > similarity_next:
+                    for i in range(1, min_size_chunk + 1):
+                        average_similarity_next = matrix_cosine_similarity[index][index + 1]
+                    average_similarity_next = average_similarity_next / min_size_chunk
+                    if average_similarity_current > average_similarity_next:
                         # current sentence belong current chunk => append to current chunk
                         src_current_chunk.append(src_sentence)
                         tgt_current_chunk.append(tgt_sentence)
+                        temp += 1
                     else:
                         # current sentence belong next chunk => create new chunk
                         src_data_out.append(src_current_chunk)
                         tgt_data_out.append(tgt_current_chunk)
                         src_current_chunk = []
                         tgt_current_chunk = []
+                        # create new chunk with current_sentence and min_size following sentence
                         src_current_chunk.append(src_sentence)
                         tgt_current_chunk.append(tgt_sentence)
+                        temp += min_size_chunk + 1
+                        for i in range(1, min_size_chunk + 1):
+                            src_current_chunk.append(src_lines_split[index + i])
+                            tgt_current_chunk.append(tgt_sentence[index + i])
+
             if len(src_current_chunk) > 0:
                 src_data_out.append(src_current_chunk)
                 tgt_data_out.append(tgt_current_chunk)
@@ -136,6 +148,7 @@ def convert_to_segment(args):
         target_lang_file = path.join(args.destdir, target_lang_file)
         save_lines(target_lang_file, tgt_data)
         logger.info('Saved %s lines into %s' % (len(tgt_data), target_lang_file))
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
