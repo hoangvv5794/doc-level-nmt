@@ -24,6 +24,9 @@ bin_path=$exp_path/$data.binarized.$slang-$tlang
 
 echo `date`, Prepraring data...
 
+
+
+
 # tokenize and sub-word
 bash exp_gtrans/prepare-spm.sh raw_data/$data $tok_path
 
