@@ -40,7 +40,7 @@ def _segment_seqtag_origin(src, tgt, num=None):
 def convert_to_segment(args):
     min_size_chunk = args.lower_size_chunk
     max_size_chunk = args.upper_size_chunk
-    threshold_similarity = args.threshold_similarity
+    threshold_similarity = 0.5
     logger.info('Building segmented data: %s' % args)
     # train, valid, test
     dataset = args.dataset
