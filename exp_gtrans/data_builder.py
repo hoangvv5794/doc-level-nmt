@@ -57,7 +57,7 @@ def convert_to_segment(args):
         matrix_ones = np.tri(len(src), k=0, dtype=np.int32).transpose()
         cosine_sim = cosine_sim * matrix_ones
         cosine_sim = cosine_sim > args.tf_idf_score
-        # find longest sentences has similarity score > 0.2
+        # find the longest sentences has similarity score > 0.2
         round_skip = 0
         queue_skip_round = []
         index = 0
