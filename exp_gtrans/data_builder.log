@@ -56,3 +56,9 @@
 [2024-02-28 15:01:58,792 INFO] Building segmented data: Namespace(corpora='test', dataset='iwslt17/', source_lang='en', target_lang='de', datadir='../raw_data/', destdir='../exp_randinit/', max_sents=1000, max_tokens=512, min_train_doclen=-1, lower_size_chunk=1, upper_size_chunk=5, threshold_similarity=0.6, mode_segment='normal', tf_idf_score=0.2, divided_group_sentences=3, no_special_tok=False, tempdir='../exp_randinit/tmp')
 [2024-02-28 15:02:22,842 INFO] Saved 93 lines into ../exp_randinit/test.en
 [2024-02-28 15:02:22,844 INFO] Saved 93 lines into ../exp_randinit/test.de
+[2024-03-01 21:22:01,669 INFO] Building segmented data: Namespace(corpora='test,valid,train', dataset='iwslt17/', source_lang='en', target_lang='de', datadir='../raw_data/', destdir='../exp_randinit/', max_sents=1000, max_tokens=512, min_train_doclen=-1, lower_size_chunk=1, upper_size_chunk=5, threshold_similarity=0.6, mode_segment='normal', tf_idf_score=0.2, divided_group_sentences=3, no_special_tok=False, tempdir='../exp_randinit/tmp')
+[2024-03-01 21:23:58,696 INFO] Building segmented data: Namespace(corpora='test,valid,train', dataset='iwslt17/', source_lang='en', target_lang='de', datadir='../raw_data/', destdir='../exp_randinit/', max_sents=1000, max_tokens=512, min_train_doclen=-1, lower_size_chunk=1, upper_size_chunk=5, threshold_similarity=0.6, mode_segment='normal', tf_idf_score=0.2, divided_group_sentences=3, no_special_tok=False, tempdir='../exp_randinit/tmp')
+[2024-03-01 21:56:54,574 INFO] Saved 98 lines into ../exp_randinit/test.en
+[2024-03-01 21:56:54,576 INFO] Saved 98 lines into ../exp_randinit/test.de
+[2024-03-01 22:01:04,543 INFO] Saved 394 lines into ../exp_randinit/valid.en
+[2024-03-01 22:01:04,584 INFO] Saved 394 lines into ../exp_randinit/valid.de

@@ -18,10 +18,24 @@ slang=en
 tlang=de
 
 # segment mode: semantic/normal/number/tf-idf
-if [ $mode_segment == "semantic" ]; then
 
+  # Semantic mode: 03 technique: normal / optimize / new_method
+  # if new_method mode: define threshold breakpoint
+  # default: distances > 80% => create new chunks
+  # if normal mode: define max and min size chunk of sentence
+  # if optimize mode: define threshold
+
+  # Normal mode: default by paper
+
+  # Number mode: grouping sentences by rules: 3/5/7 sentences each group
+  # define number sentence each group: --divided-group-sentences 3
+
+  # TF-IDF mode: split by TF-IDF
+  # define threshold tf-idf: --tf-idf-score 0.2
+
+if [ $mode_segment == "semantic" ]; then
   if [ $input == "doc" ]; then
-    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000
+    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-semantic new_method --threshold-breakpoint 80
   elif [ $input == "sent" ]; then
     python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
   fi
@@ -55,7 +69,7 @@ elif [ $mode_segment == "tf_idf" ]; then
 
   # data builder
   if [ $input == "doc" ]; then
-    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment $mode_segment ----tf-idf-score 0.2
+    python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-segment $mode_segment --tf-idf-score 0.2
   elif [ $input == "sent" ]; then
     python3 -m exp_gtrans.data_builder --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
   fi

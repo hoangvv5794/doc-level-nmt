@@ -3,7 +3,7 @@ import logging
 import os
 import os.path as path
 from sentence_transformers import SentenceTransformer, util
-from utils import read_file, save_lines
+from utils import read_file, save_lines, calculate_cosine_distances, plot_example
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 logger = logging.getLogger()
@@ -62,6 +62,7 @@ def convert_to_segment(args):
             tgt_lines_split = tgt_doc.split('\r\n')
             src_lines_split = list(filter(None, src_lines_split))
             tgt_lines_split = list(filter(None, tgt_lines_split))
+
             # push each sentence to BERT Model and vectorize each sentence
             embeddings = model.encode(src_lines_split, convert_to_tensor=True)
             matrix_cosine_similarity = util.cos_sim(embeddings, embeddings)
@@ -183,7 +184,7 @@ if __name__ == '__main__':
     parser.add_argument('--no-special-tok', action='store_true', default=False)
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, filename='./data_builder.log',
+    logging.basicConfig(level=logging.INFO, filename='../exp_gtrans/data_builder.log',
                         format="[%(asctime)s %(levelname)s] %(message)s")
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter("[%(asctime)s %(levelname)s] %(message)s"))
