@@ -139,7 +139,7 @@ def convert_to_segment(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--corpora", default='test,valid,train')
+    parser.add_argument("--corpora", default='test')
     parser.add_argument("--dataset", default='iwslt17/')
     parser.add_argument("--source-lang", default='en')
     parser.add_argument("--target-lang", default='de')
