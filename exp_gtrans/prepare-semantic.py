@@ -244,12 +244,12 @@ def convert_to_segment(args):
             sentence['combined_sentence_embedding'] = embeddings[i]
         try:
             distances, data_set = calculate_cosine_distances_dictionary(data_set)
+            breakpoint_distance_threshold = np.percentile(distances,
+                                                          breakpoint_percentile_threshold)
         except:
             logger.info('error dataset %s', data_set)
-        breakpoint_distance_threshold = np.percentile(distances,
-                                                      breakpoint_percentile_threshold)
-        indices_above_thresh = [i for i, x in enumerate(distances) if x > breakpoint_distance_threshold]
 
+        indices_above_thresh = [i for i, x in enumerate(distances) if x > breakpoint_distance_threshold]
         start_index = 0
 
         # Create a list to hold the grouped sentences
@@ -296,8 +296,8 @@ def convert_to_segment(args):
         tgt_raw = read_file(path.join(args.datadir, dataset, target_lang_file))
         src_doc_split = src_raw.split('<d>')
         tgt_doc_split = tgt_raw.split('<d>')
-        src_doc_split = list(filter(None, src_doc_split))
-        tgt_doc_split = list(filter(None, tgt_doc_split))
+        src_doc_split = list(filter(lambda i: len(i) > 3, src_doc_split))
+        tgt_doc_split = list(filter(lambda i: len(i) > 3, tgt_doc_split))
         src_data = []
         tgt_data = []
         for idx, (src_doc, tgt_doc) in enumerate(zip(src_doc_split, tgt_doc_split)):
@@ -323,7 +323,7 @@ def convert_to_segment(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--corpora", default='test')
+    parser.add_argument("--corpora", default='train')
     parser.add_argument("--dataset", default='iwslt17/')
     parser.add_argument("--source-lang", default='en')
     parser.add_argument("--target-lang", default='de')
@@ -333,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument("--max-tokens", default=512, type=int)
     parser.add_argument("--min-train-doclen", default=-1, type=int)
     # mode segment: normal/optimize/new_method
-    parser.add_argument("--mode-semantic", default='normal')
+    parser.add_argument("--mode-semantic", default='new_method')
     # if new_method mode: define threshold breakpoint
     # default: distances > 80% => create new chunks
     parser.add_argument("--threshold-breakpoint", default=80, type=int)
