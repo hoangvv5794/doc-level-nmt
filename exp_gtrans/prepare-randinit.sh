@@ -34,10 +34,12 @@ tlang=de
   # define threshold tf-idf: --tf-idf-score 0.2
 
 if [ $mode_segment == "semantic" ]; then
+  seg_path=$exp_path/$data.segmented.$slang-$tlang
+  echo `date`, seg_path: seg_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang
   if [ $input == "doc" ]; then
-    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-semantic new_method --threshold-breakpoint 80
+    python3 -m exp_gtrans.prepare-semantic --dataset data --datadir raw_data/ --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1000 --mode-semantic new_method --threshold-breakpoint 80
   elif [ $input == "sent" ]; then
-    python3 -m exp_gtrans.prepare-semantic --datadir $tok_path --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
+    python3 -m exp_gtrans.prepare-semantic --dataset data --datadir raw_data/ --destdir $seg_path/ --source-lang $slang --target-lang $tlang --max-tokens 512 --max-sents 1
   fi
 elif [ $mode_segment == "normal" ]; then
   echo `date`, exp_path: $exp_path, data: $data, input: $input, code: $code, slang: $slang, tlang: $tlang

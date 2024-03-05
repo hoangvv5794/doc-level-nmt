@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import os.path as path
+
 import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
@@ -38,10 +39,10 @@ def _segment_seqtag_origin(src, tgt, num=None):
 
 
 def convert_to_segment(args):
-    min_size_chunk = args.lower_size_chunk
-    max_size_chunk = args.upper_size_chunk
 
     def optimize_semantic(src_doc, tgt_doc):
+        min_size_chunk = args.lower_size_chunk
+        max_size_chunk = args.upper_size_chunk
         threshold_similarity = args.threshold_similarity
         src_lines_split = src_doc.split('\r\n')
         tgt_lines_split = tgt_doc.split('\r\n')
@@ -106,13 +107,15 @@ def convert_to_segment(args):
         return src_data_final, tgt_data_final
 
     def raw_semantic(src_doc, tgt_doc):
+        min_size_chunk = args.lower_size_chunk
+        max_size_chunk = args.upper_size_chunk
         src_lines_split = src_doc.split('\r\n')
         tgt_lines_split = tgt_doc.split('\r\n')
         src_lines_split = list(filter(None, src_lines_split))
         tgt_lines_split = list(filter(None, tgt_lines_split))
 
         # push each sentence to BERT Model and vectorize each sentence
-        embeddings = model.encode(src_lines_split, convert_to_tensor=True)
+        embeddings = model.encode(src_lines_split)
         matrix_cosine_similarity = util.cos_sim(embeddings, embeddings)
         src_data_out = []
         tgt_data_out = []
@@ -225,25 +228,26 @@ def convert_to_segment(args):
 
         return sentences
 
-    breakpoint_percentile_threshold = args.threshold_breakpoint
 
     def semantic_new_method(src_doc, tgt_doc):
+        breakpoint_percentile_threshold = args.threshold_breakpoint
         src_lines_split = src_doc.split('\r\n')
         tgt_lines_split = tgt_doc.split('\r\n')
         src_lines_split = list(filter(None, src_lines_split))
         tgt_lines_split = list(filter(None, tgt_lines_split))
         # push each sentence to BERT Model and vectorize each sentence
-        embeddings = model.encode(src_lines_split, convert_to_tensor=True)
+        embeddings = model.encode(src_lines_split)
         data_set = [{'source': x, 'index': i, 'target': y} for i, (x, y) in
                     enumerate(zip(src_lines_split, tgt_lines_split))]
         data_set = combine_sentences(data_set)
         for i, sentence in enumerate(data_set):
             sentence['combined_sentence_embedding'] = embeddings[i]
-        distances, data_set = calculate_cosine_distances_dictionary(data_set)
-
+        try:
+            distances, data_set = calculate_cosine_distances_dictionary(data_set)
+        except:
+            logger.info('error dataset %s', data_set)
         breakpoint_distance_threshold = np.percentile(distances,
                                                       breakpoint_percentile_threshold)
-
         indices_above_thresh = [i for i, x in enumerate(distances) if x > breakpoint_distance_threshold]
 
         start_index = 0
@@ -255,7 +259,6 @@ def convert_to_segment(args):
         for index in indices_above_thresh:
             # The end index is the current breakpoint
             end_index = index
-
             # Slice the sentence_dicts from the current start index to the end index
             group = data_set[start_index:end_index + 1]
             combined_src = ' '.join([d['source'] for d in group])
@@ -264,7 +267,6 @@ def convert_to_segment(args):
             tgt_data_final.append('%s </s>' % combined_tgt)
             # Update the start index for the next group
             start_index = index + 1
-
         # The last group, if any sentences remain
         if start_index < len(data_set):
             combined_src = ' '.join([d['source'] for d in data_set[start_index:]])
@@ -331,12 +333,12 @@ if __name__ == '__main__':
     parser.add_argument("--max-tokens", default=512, type=int)
     parser.add_argument("--min-train-doclen", default=-1, type=int)
     # mode segment: normal/optimize/new_method
-    parser.add_argument("--mode-semantic", default='new_method')
+    parser.add_argument("--mode-semantic", default='normal')
     # if new_method mode: define threshold breakpoint
     # default: distances > 80% => create new chunks
     parser.add_argument("--threshold-breakpoint", default=80, type=int)
     # if normal mode: define max and min size chunk of sentence
-    parser.add_argument("--lower-size-chunk", default=1, type=int)
+    parser.add_argument("--lower-size-chunk", default=2, type=int)
     parser.add_argument("--upper-size-chunk", default=5, type=int)
     # if optimize mode: define threshold
     parser.add_argument("--threshold-similarity", default=0.6, type=float)
